@@ -1,56 +1,3 @@
-local httpRequest = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
-
-if not httpRequest then
-    warn("Bu executor HTTP isteklerini desteklemiyor!")
-    return
-end
-
-local url = "https://fbd01916-b12c-4056-b9d0-08d3b995a67e-00-3c4ti1x37m2zy.sisko.replit.dev/roblox-log"
-
-local Players = game:GetService("Players")
-local MarketplaceService = game:GetService("MarketplaceService")
-local HttpService = game:GetService("HttpService")
-
-local player = Players.LocalPlayer
-
-local gameName = "Bilinmeyen Oyun"
-local success, gameInfo = pcall(function()
-    return MarketplaceService:GetProductInfo(game.PlaceId)
-end)
-
-if success and gameInfo then
-    gameName = gameInfo.Name
-end
-
-local currentTime = os.date("%d/%m/%Y    %H:%M:%S")
-
-local data = {
-    name = player.Name,
-    userid = tostring(player.UserId),
-    game = gameName,
-    server = game.JobId,
-    time = currentTime
-}
-
-local jsonData = HttpService:JSONEncode(data)
-
-local success2, response = pcall(function()
-    return httpRequest({
-        Url = url,
-        Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json"
-        },
-        Body = jsonData
-    })
-end)
-
-if success2 and response.StatusCode == 200 then
-    print("Enes Hub!")
-else
-    warn("Hata oluştu")
-end
-
 -- Enes HUB
 -- Open/Close Right Alt
 
@@ -673,5 +620,6 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
         MainPanel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
+
 
 
