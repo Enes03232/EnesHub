@@ -1,7 +1,4 @@
--- LocalScript -> StarterPlayerScripts
--- Tam entegre script: JJ/GJ/HJ sistemi + RUN/STOP/RESET + Panel sürükleme
--- ChatLogs sistemi tamamen kaldırıldı
-
+-- Amınoglu Panel
 -- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -354,5 +351,6 @@ UIS.InputChanged:Connect(function(input)
         )
     end
 end)
+
 
 -- End of script
