@@ -148,7 +148,7 @@ loop = RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Temizleme: script kapandığında FOV ring'i kaldır
+
 local function cleanup()
     if loop then
         loop:Disconnect()
@@ -159,3 +159,4 @@ local function cleanup()
 end
 
 game:BindToClose(cleanup)
+
