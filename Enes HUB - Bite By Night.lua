@@ -282,7 +282,7 @@ task.spawn(function()
             end
         end
 
-        task.wait(0.5) -- Daha hızlı tepki için 0.5 sn
+        task.wait(0.5) 
     end
 end)
 
