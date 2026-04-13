@@ -38,7 +38,7 @@ title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.TextXAlignment = Enum.TextXAlignment.Left
 
--- COPYRIGHT VE DISCORD
+-- DISCORD
 local copyright = Instance.new("TextLabel", main)
 copyright.Size = UDim2.new(0,150,0,20)
 copyright.Position = UDim2.new(0,10,1,-25)
