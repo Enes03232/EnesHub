@@ -3,9 +3,14 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 if not player then return end
+
+-- Cihaz tespiti
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local isConsole = UserInputService.GamepadEnabled and not UserInputService.KeyboardEnabled
 
 local gameName = "Bilinmeyen Oyun"
 local success, gameInfo = pcall(function()
@@ -15,24 +20,8 @@ if success and gameInfo then
     gameName = gameInfo.Name
 end
 
-local currentTime = os.date("%d/%m/%Y    %H:%M:%S")
-local data = {
-    name = player.Name,
-    userid = tostring(player.UserId),
-    game = gameName,
-    server = game.JobId,
-    time = currentTime
-}
-local jsonData = HttpService:JSONEncode(data)
-
-pcall(function()
-    httpRequest({
-        Url = url,
-        Method = "POST",
-        Headers = { ["Content-Type"] = "application/json" },
-        Body = jsonData
-    })
-end)
+-- NOT: httpRequest / url kodda tanımsız olduğu için kaldırıldı.
+-- Eğer webhook kullanacaksan url'yi ve httpRequest'i ayrıca tanımla.
 
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -69,13 +58,53 @@ local function teleportTo(pos)
     end
 end
 
--- Create ScreenGui
+-- ============================================================
+-- ScreenGui
+-- ============================================================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "EnesHub"
 screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
--- Glow background (orijinal boyutlara yakın)
+-- ============================================================
+-- AÇMA/KAPAMA BUTONU (Sol ortada, "E" logolu)
+-- ============================================================
+local toggleBtn = Instance.new("TextButton", screenGui)
+toggleBtn.Name = "ToggleButton"
+toggleBtn.AnchorPoint = Vector2.new(0, 0.5)
+toggleBtn.Position = UDim2.new(0, 12, 0.5, 0) -- Sol orta
+toggleBtn.Size = UDim2.new(0, 56, 0, 56)     -- Mobil için büyük dokunma alanı
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+toggleBtn.Text = "E"
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 28
+toggleBtn.TextColor3 = Color3.fromRGB(100, 180, 255)
+toggleBtn.AutoButtonColor = false
+toggleBtn.BorderSizePixel = 0
+toggleBtn.Active = true
+toggleBtn.Draggable = false -- Kendi sürükleme sistemimizi kullanacağız
+
+local toggleCorner = Instance.new("UICorner", toggleBtn)
+toggleCorner.CornerRadius = UDim.new(1, 0)
+
+local toggleStroke = Instance.new("UIStroke", toggleBtn)
+toggleStroke.Color = Color3.fromRGB(100, 180, 255)
+toggleStroke.Thickness = 2
+toggleStroke.Transparency = 0.3
+
+local toggleGradient = Instance.new("UIGradient", toggleBtn)
+toggleGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 120)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(100, 180, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 255, 160))
+}
+toggleGradient.Rotation = 45
+
+-- ============================================================
+-- Glow background
+-- ============================================================
 local glow = Instance.new("Frame", screenGui)
 glow.Name = "Glow"
 glow.AnchorPoint = Vector2.new(0.5, 0)
@@ -90,7 +119,9 @@ glowGradient.Color = ColorSequence.new{
 }
 glowGradient.Rotation = 0
 
--- Main panel (ESKİ boyut: 420x360)
+-- ============================================================
+-- Main panel
+-- ============================================================
 local panel = Instance.new("Frame", screenGui)
 panel.Name = "Main"
 panel.AnchorPoint = Vector2.new(0.5, 0)
@@ -98,6 +129,7 @@ panel.Position = UDim2.new(0.5, 0, 0.05, 0)
 panel.Size = UDim2.new(0, 420, 0, 360)
 panel.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 panel.BorderSizePixel = 0
+panel.Active = true
 Instance.new("UICorner", panel)
 local stroke = Instance.new("UIStroke", panel)
 stroke.Color = Color3.fromRGB(100,180,255)
@@ -170,7 +202,6 @@ speedToggle.BackgroundColor3 = Color3.fromRGB(80, 30, 200)
 speedToggle.TextColor3 = Color3.fromRGB(255,255,255)
 Instance.new("UICorner", speedToggle)
 
--- +/- buttons and display
 local speedDec = Instance.new("TextButton", walkFrame)
 speedDec.Position = UDim2.new(0,0,0,42)
 speedDec.Size = UDim2.new(0,48,0,32)
@@ -200,7 +231,6 @@ speedDisplay.Font = Enum.Font.GothamBold
 speedDisplay.TextSize = 16
 speedDisplay.TextColor3 = Color3.fromRGB(220,220,230)
 
--- XP Farm label
 local xpLabel = Instance.new("TextLabel", walkFrame)
 xpLabel.Position = UDim2.new(0,0,0,80)
 xpLabel.Size = UDim2.new(0, 240, 0, 20)
@@ -211,7 +241,6 @@ xpLabel.TextSize = 16
 xpLabel.TextColor3 = Color3.fromRGB(220,220,230)
 xpLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- xpContainer: ScrollingFrame, panelin içinde kalarak taşmayı engeller
 local xpContainer = Instance.new("ScrollingFrame", walkFrame)
 xpContainer.Name = "XPContainer"
 xpContainer.Position = UDim2.new(0,0,0,106)
@@ -219,6 +248,8 @@ xpContainer.Size = UDim2.new(1, 0, 0, 200)
 xpContainer.BackgroundTransparency = 1
 xpContainer.ScrollBarThickness = 8
 xpContainer.CanvasSize = UDim2.new(0,0,0,0)
+xpContainer.ScrollingDirection = Enum.ScrollingDirection.Y
+xpContainer.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
 
 local xpLayout = Instance.new("UIListLayout", xpContainer)
 xpLayout.FillDirection = Enum.FillDirection.Vertical
@@ -231,30 +262,13 @@ xpPadding.PaddingRight = UDim.new(0,4)
 xpPadding.PaddingTop = UDim.new(0,4)
 xpPadding.PaddingBottom = UDim.new(0,4)
 
--- Level list (tanımlar)
 local XP_LOCATIONS = {
-    {level = 200,
-     start = Vector3.new(-921.3, 60.0, -1312.1),
-     finish = Vector3.new(-895.6, 136.2, 2000.0)
-    },
-    {level = 40,
-     start = Vector3.new(2987.5, 270.2, 2052.6),
-     finish = Vector3.new(-1589.5, 634.6, 1913.0)
-    },
-    {level = 25,
-     start = Vector3.new(123.5, 235.6, -644.0),
-     finish = Vector3.new(165.3, 461.8, -475.0)
-    },
-    {level = 15,
-     start = Vector3.new(-263.6, 423.9, -366.4),
-     finish = Vector3.new(58.4, 165.0, -544.6)
-    },
-    {level = 6,
-     start = Vector3.new(2503.4, 29.8, 1482.9),
-     finish = Vector3.new(2718.5, 100.0, 1826.4)
-    },
+    {level = 200, start = Vector3.new(-921.3, 60.0, -1312.1), finish = Vector3.new(-895.6, 136.2, 2000.0)},
+    {level = 40,  start = Vector3.new(2987.5, 270.2, 2052.6), finish = Vector3.new(-1589.5, 634.6, 1913.0)},
+    {level = 25,  start = Vector3.new(123.5, 235.6, -644.0),  finish = Vector3.new(165.3, 461.8, -475.0)},
+    {level = 15,  start = Vector3.new(-263.6, 423.9, -366.4), finish = Vector3.new(58.4, 165.0, -544.6)},
+    {level = 6,   start = Vector3.new(2503.4, 29.8, 1482.9), finish = Vector3.new(2718.5, 100.0, 1826.4)},
 }
-
 
 table.sort(XP_LOCATIONS, function(a,b) return a.level < b.level end)
 
@@ -305,7 +319,6 @@ for _, info in ipairs(XP_LOCATIONS) do
     end)
 end
 
--- xpContainer canvas
 xpLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     xpContainer.CanvasSize = UDim2.new(0, 0, 0, xpLayout.AbsoluteContentSize.Y + 8)
 end)
@@ -329,6 +342,8 @@ scroll.Size = UDim2.new(1,0,1,-30)
 scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 scroll.BackgroundTransparency = 1
 scroll.ScrollBarThickness = 6
+scroll.ScrollingDirection = Enum.ScrollingDirection.Y
+scroll.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
 local layout = Instance.new("UIListLayout", scroll)
 layout.FillDirection = Enum.FillDirection.Vertical
 layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -342,7 +357,7 @@ for i,v in ipairs(TP_ORDER) do
     local btn = Instance.new("TextButton")
     btn.Name = v.name
     btn.Text = v.name
-    btn.Size = UDim2.new(1, 0, 0, 36)
+    btn.Size = UDim2.new(1, 0, 0, 44) -- Mobil için 44px dokunma hedefi
     btn.BackgroundColor3 = Color3.fromRGB(70,70,90)
     btn.TextColor3 = Color3.fromRGB(240,240,240)
     btn.Font = Enum.Font.Gotham
@@ -392,40 +407,167 @@ tpTab.MouseButton1Click:Connect(function()
 end)
 setActiveTab("Main")
 
+-- ============================================================
+-- PANEL AÇMA / KAPAMA SİSTEMİ
+-- ============================================================
+local isOpen = true
+local defaultPanelPos = UDim2.new(0.5, 0, 0.05, 0)
+local defaultGlowPos = UDim2.new(0.5, 0, 0.05, 0)
+
+local function setPanelVisible(state)
+    isOpen = state
+    if state then
+        panel.Visible = true
+        glow.Visible = true
+        TweenService:Create(panel, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            {Position = panel.Position, Size = UDim2.new(0,420,0,360), BackgroundTransparency = 0}):Play()
+        TweenService:Create(glow, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+            {Size = UDim2.new(0,460,0,380)}):Play()
+        toggleBtn.Text = "E"
+    else
+        TweenService:Create(panel, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+            {Size = UDim2.new(0, 0, 0, 0)}):Play()
+        TweenService:Create(glow, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+            {Size = UDim2.new(0, 0, 0, 0)}):Play()
+        task.delay(0.26, function()
+            if not isOpen then
+                panel.Visible = false
+                glow.Visible = false
+            end
+        end)
+        toggleBtn.Text = "E"
+    end
+end
+
+-- Toggle butonuna tıklama
+toggleBtn.MouseButton1Click:Connect(function()
+    pulseButton(toggleBtn)
+    setPanelVisible(not isOpen)
+end)
+
+-- ============================================================
+-- MOBIL + PC UYUMLU SÜRÜKLEME SİSTEMİ (Toggle Butonu için)
+-- ============================================================
+local function makeDraggable(frame, targetFrame)
+    local dragging = false
+    local dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        targetFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = targetFrame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+-- Toggle butonu sürüklenebilir (panel'i değil, kendisini taşır)
+makeDraggable(toggleBtn, toggleBtn)
+
+-- Panel sürüklenebilir (sadece başlık çubuğundan)
+local panelDragArea = Instance.new("TextButton", panel)
+panelDragArea.Name = "DragArea"
+panelDragArea.Position = UDim2.new(0, 0, 0, 0)
+panelDragArea.Size = UDim2.new(1, 0, 0, 50)
+panelDragArea.BackgroundTransparency = 1
+panelDragArea.Text = ""
+panelDragArea.AutoButtonColor = false
+panelDragArea.ZIndex = 0
+
+local function makePanelDraggable()
+    local dragging = false
+    local dragInput, dragStart, startPos, glowStartPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        local newPos = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+        panel.Position = newPos
+        glow.Position = UDim2.new(
+            glowStartPos.X.Scale,
+            glowStartPos.X.Offset + delta.X,
+            glowStartPos.Y.Scale,
+            glowStartPos.Y.Offset + delta.Y
+        )
+    end
+
+    panelDragArea.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = panel.Position
+            glowStartPos = glow.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    panelDragArea.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+makePanelDraggable()
+
 -- PANEL OPEN ANIMATION
 panel.Position = UDim2.new(0.5, 0, -0.4, 0)
 panel.Size = UDim2.new(0, 0, 0, 0)
-TweenService:Create(panel, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5,0,0.05,0), Size = UDim2.new(0,420,0,360)}):Play()
-TweenService:Create(glow, TweenInfo.new(0.55, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0,460,0,380)}):Play()
+TweenService:Create(panel, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    {Position = UDim2.new(0.5,0,0.05,0), Size = UDim2.new(0,420,0,360)}):Play()
+TweenService:Create(glow, TweenInfo.new(0.55, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+    {Size = UDim2.new(0,460,0,380)}):Play()
 
--- DRAGGING SYSTEM
-local dragging, dragInput, dragStart, startPos
-panel.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = panel.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-panel.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        glow.Position = panel.Position
-    end
-end)
-
+-- ============================================================
 -- SPEED BOOSTER
+-- ============================================================
 local speedEnabled = false
 local speedMultiplier = 1
 
@@ -435,7 +577,7 @@ speedToggle.MouseButton1Click:Connect(function()
         speedToggle.Text = "SPEED: Open ("..tostring(speedMultiplier).."x)"
         speedToggle.BackgroundColor3 = Color3.fromRGB(0,150,255)
     else
-        speedToggle.Text = "HIZ: Kapalı"
+        speedToggle.Text = "SPEED: Close"
         speedToggle.BackgroundColor3 = Color3.fromRGB(80,30,200)
     end
 end)
@@ -445,7 +587,7 @@ speedDec.MouseButton1Click:Connect(function()
     speedMultiplier = math.clamp((speedMultiplier or 1) - 1, 1, 10)
     speedDisplay.Text = tostring(speedMultiplier) .. "x"
     if speedEnabled then
-        speedToggle.Text = "HIZ: Açık ("..tostring(speedMultiplier).."x)"
+        speedToggle.Text = "SPEED: Open ("..tostring(speedMultiplier).."x)"
     end
 end)
 
@@ -454,7 +596,7 @@ speedInc.MouseButton1Click:Connect(function()
     speedMultiplier = math.clamp((speedMultiplier or 1) + 1, 1, 10)
     speedDisplay.Text = tostring(speedMultiplier) .. "x"
     if speedEnabled then
-        speedToggle.Text = "HIZ: Açık ("..tostring(speedMultiplier).."x)"
+        speedToggle.Text = "SPEED: Open ("..tostring(speedMultiplier).."x)"
     end
 end)
 
@@ -479,4 +621,3 @@ task.spawn(function()
         task.wait(0.05)
     end
 end)
-
